@@ -18,11 +18,13 @@ public class ClientApplication extends Application {
     private static final Logger logger = LogManager.getRootLogger();
     @Setter
     private static FTPClient ftpClient;
+
     private Stage stage;
 
 
     @Override
     public void start(Stage stage) throws IOException {
+
         this.stage = stage;
         loadLoginView();
     }
@@ -50,12 +52,16 @@ public class ClientApplication extends Application {
             Scene scene = new Scene(fxmlLoader.load(), 600, 400);
             MainViewController controller = fxmlLoader.getController();
             controller.setFtpClient(ftpClient);
+
+            controller.initPanel();
             stage.setTitle("FTP Client - Main View");
             stage.setScene(scene);
             stage.show();
         } catch (Exception e) {
-            logger.error("Can't load main view: " + e.getMessage());
+            logger.error("Can't load main view: " + e.getMessage(), e);
         }
     }
+
+
 
 }

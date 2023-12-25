@@ -3,6 +3,7 @@ package com.example.ftpclient.controllers;
 import com.example.ftpclient.ClientApplication;
 import com.example.ftpclient.exceptions.LoginFailedException;
 import javafx.scene.control.Label;
+import lombok.extern.java.Log;
 import org.apache.commons.net.ftp.FTPClient;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -22,12 +23,11 @@ import java.util.function.Consumer;
 public class LoginController implements Initializable {
     private static final Logger logger = LogManager.getRootLogger();
 
+
     @Setter
     private FTPClient ftpClient;
     @Setter
     private Runnable action;
-
-
 
     @FXML
     private Button loginButton;
