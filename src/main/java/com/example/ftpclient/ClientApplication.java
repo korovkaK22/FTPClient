@@ -2,6 +2,7 @@ package com.example.ftpclient;
 
 import com.example.ftpclient.controllers.LoginController;
 import com.example.ftpclient.controllers.MainViewController;
+import com.example.ftpclient.utils.LoadDefaultSettings;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -17,6 +18,9 @@ import java.io.IOException;
 public class ClientApplication extends Application {
     private static final Logger logger = LogManager.getRootLogger();
     @Setter
+    private static LoadDefaultSettings settings;
+
+    @Setter
     private static FTPClient ftpClient;
 
     private Stage stage;
@@ -24,7 +28,6 @@ public class ClientApplication extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-
         this.stage = stage;
         loadLoginView();
     }
@@ -37,6 +40,7 @@ public class ClientApplication extends Application {
             LoginController controller = fxmlLoader.getController();
             controller.setAction(this::loadMainView);
             controller.setFtpClient(ftpClient);
+            controller.initLabels(settings.getUsername(), settings.getPassword(), settings.getServerDomain());
             stage.setTitle("FTP Client - Login");
             stage.setScene(scene);
             stage.show();

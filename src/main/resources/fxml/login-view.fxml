@@ -13,14 +13,14 @@
             <Font size="36.0" />
          </font>
       </Label>
-      <TextField fx:id="loginLabel" layoutX="209.0" layoutY="80.0" prefHeight="30.0" prefWidth="182.0" promptText="login" text="admin" />
-      <TextField fx:id="passwordLabel" layoutX="209.0" layoutY="139.0" prefHeight="30.0" prefWidth="182.0" promptText="password" text="admin" />
+      <TextField fx:id="loginLabel" layoutX="209.0" layoutY="80.0" prefHeight="30.0" prefWidth="182.0" promptText="login" />
+      <TextField fx:id="passwordLabel" layoutX="209.0" layoutY="139.0" prefHeight="30.0" prefWidth="182.0" promptText="password" />
       <Button fx:id="loginButton" layoutX="221.0" layoutY="267.0" mnemonicParsing="false" onAction="#loginAction" prefHeight="30.0" prefWidth="158.0" text="Login">
          <font>
             <Font size="17.0" />
          </font>
       </Button>
-      <TextField fx:id="serverLabel" layoutX="209.0" layoutY="206.0" prefHeight="30.0" prefWidth="182.0" promptText="server" text="localhost" />
+      <TextField fx:id="serverLabel" layoutX="209.0" layoutY="206.0" prefHeight="30.0" prefWidth="182.0" promptText="server" />
       <Label fx:id="errorLabel" alignment="CENTER" contentDisplay="CENTER" layoutX="9.0" layoutY="324.0" prefHeight="54.0" prefWidth="579.0" textFill="#fa0202">
          <font>
             <Font size="18.0" />

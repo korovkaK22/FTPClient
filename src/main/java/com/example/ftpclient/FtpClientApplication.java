@@ -1,6 +1,7 @@
 package com.example.ftpclient;
 
 
+import com.example.ftpclient.utils.LoadDefaultSettings;
 import javafx.application.Application;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.logging.log4j.LogManager;
@@ -19,7 +20,7 @@ public class FtpClientApplication {
         ConfigurableApplicationContext context = SpringApplication.run(FtpClientApplication.class, args);
         FTPClient ftpClient = new FTPClient();
         ftpClient.setControlEncoding("UTF-8");
-
+        ClientApplication.setSettings(context.getBean(LoadDefaultSettings.class));
         ClientApplication.setFtpClient(ftpClient);
         Application.launch(ClientApplication.class, args);
     }

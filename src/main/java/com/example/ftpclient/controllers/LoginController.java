@@ -2,6 +2,7 @@ package com.example.ftpclient.controllers;
 
 import com.example.ftpclient.ClientApplication;
 import com.example.ftpclient.exceptions.LoginFailedException;
+import com.example.ftpclient.utils.LoadDefaultSettings;
 import javafx.scene.control.Label;
 import lombok.extern.java.Log;
 import org.apache.commons.net.ftp.FTPClient;
@@ -23,7 +24,6 @@ import java.util.function.Consumer;
 public class LoginController implements Initializable {
     private static final Logger logger = LogManager.getRootLogger();
 
-
     @Setter
     private FTPClient ftpClient;
     @Setter
@@ -41,11 +41,15 @@ public class LoginController implements Initializable {
     @FXML
     private TextField serverLabel;
 
-    @FXML
-    private TextField serverPortLabel;
 
     @FXML
     private Label errorLabel;
+
+    public void initLabels(String username, String password, String serverDomain){
+        loginLabel.setText(username);
+        passwordLabel.setText(password);
+        serverLabel.setText(serverDomain);
+    }
 
     @FXML
     void loginAction(ActionEvent event) throws Exception {
@@ -56,8 +60,9 @@ public class LoginController implements Initializable {
             }
             action.run();
         } catch (Exception e){
-            errorLabel.setText(e.getMessage());
-            logger.error(e.getMessage());
+            String ex = "Can't login: "+ e.getMessage();
+            errorLabel.setText(ex);
+            logger.error(ex);
         }
     }
 
