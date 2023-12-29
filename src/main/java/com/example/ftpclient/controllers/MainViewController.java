@@ -1,15 +1,25 @@
 package com.example.ftpclient.controllers;
 
+import com.example.ftpclient.ClientApplication;
+import com.example.ftpclient.exceptions.CreateItemException;
 import com.example.ftpclient.files.DummyFile;
+import com.example.ftpclient.managers.ListManager;
+import com.example.ftpclient.managers.SessionManager;
+import com.example.ftpclient.memento.ConnectionMemento;
+import com.example.ftpclient.utils.FTPUtil;
 import com.example.ftpclient.utils.FtpFilesUtil;
 import com.example.ftpclient.utils.TreeViewUtils;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
+import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
@@ -19,10 +29,14 @@ import org.apache.logging.log4j.Logger;
 import java.io.*;
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.function.Consumer;
 
 public class MainViewController implements Initializable {
     private static final Logger logger = LogManager.getRootLogger();
 
+    @FXML
+    @Getter
+    private ListView<String> sessionList;
 
     @FXML
     private Label errorLabel;
@@ -33,6 +47,8 @@ public class MainViewController implements Initializable {
     @FXML
     private Button downloadButton;
 
+    @Setter
+    private Consumer<Parent> openWindow;
 
     @FXML
     private Button uploadFileButton;
@@ -45,6 +61,11 @@ public class MainViewController implements Initializable {
 
     @FXML
     private TreeView<FTPFile> treeViewPanel;
+
+    private ListManager listManager;
+    private SessionManager sessionManager;
+
+    private String currentSessionName;
 
 
     @Override
@@ -60,15 +81,32 @@ public class MainViewController implements Initializable {
                 }
             }
         });
+
+        listManager = new ListManager(sessionList);
+        sessionManager = new SessionManager();
+
+        sessionList.getSelectionModel().selectedIndexProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && (int) newValue >= 0) {
+                changeConnection();
+            }
+        });
+
+        disableAllButtons();
+        treeViewPanel.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            updateButtonsBasedOnSelection(newValue);
+            resetErrorLabel();
+        });
+    }
+
+    /**
+     * Вивкнути всі кнопки управління, що справа
+     */
+    private void disableAllButtons() {
         uploadFolderButton.setDisable(true);
         downloadButton.setDisable(true);
         uploadFileButton.setDisable(true);
         deleteButton.setDisable(true);
 
-        treeViewPanel.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            updateButtonsBasedOnSelection(newValue);
-            resetErrorLabel();
-        });
     }
 
 
@@ -76,21 +114,56 @@ public class MainViewController implements Initializable {
      * Ініціалізує TreeView на початку
      */
     public void initPanel() {
+        logger.debug("Panel init");
+        TreeItem<FTPFile> rootItem = getRootItem(ftpClient);
+        treeViewPanel.setRoot(rootItem);
+
+    }
+
+    private TreeItem<FTPFile> getRootItem(FTPClient client) {
         try {
-            logger.debug("Panel init");
             FTPFile rootFile = new DummyFile();
             rootFile.setType(FTPFile.DIRECTORY_TYPE);
-            rootFile.setName(ftpClient.printWorkingDirectory());
-            TreeItem<FTPFile> rootItem = new TreeItem<>(rootFile);
-            treeViewPanel.setRoot(rootItem);
-            TreeViewUtils.loadDirectoryInsideItem(ftpClient.printWorkingDirectory(), rootItem, ftpClient);
+            rootFile.setName(client.printWorkingDirectory());
+            TreeItem<FTPFile> result = new TreeItem<>(rootFile);
+            TreeViewUtils.loadDirectoryInsideItem(client.printWorkingDirectory(), result, client);
+            return result;
         } catch (IOException e) {
-            logger.error("Can't load treeView Panel: " + e.getMessage(), e);
-            setErrorText("Can't upload file: " + e.getMessage());
+            String message = "Can't make rootItem: " + e.getMessage();
+            logger.error(message, e);
+            setErrorText(message);
+            throw new CreateItemException(message);
         }
     }
 
 
+    public void addSession(String name, FTPClient client) {
+        listManager.add(name);
+        ConnectionMemento memento = new ConnectionMemento(client, getRootItem(client));
+        sessionManager.save(name, memento);
+        if (listManager.getListSize() == 1){
+            listManager.setSelectedPosition(0);
+        }
+    }
+
+    private void changeConnection() {
+        if (ftpClient != null) {
+            sessionManager.save(currentSessionName, getMemento());
+        }
+        currentSessionName = listManager.getCurrentSessionName();
+        ConnectionMemento memento = sessionManager.get(currentSessionName);
+        setMemento(memento);
+    }
+
+
+    public ConnectionMemento getMemento() {
+        return new ConnectionMemento(ftpClient, treeViewPanel.getRoot());
+    }
+
+    public void setMemento(ConnectionMemento memento) {
+        this.ftpClient = memento.getFtpClient();
+        treeViewPanel.setRoot(memento.getRootItem());
+    }
 
     /**
      * Викликає меню для вивантаження файлу та зберігає його на сервер
@@ -234,12 +307,15 @@ public class MainViewController implements Initializable {
      */
     @FXML
     void reloadAction() {
-        initPanel();
+        if (ftpClient != null) {
+            initPanel();
+        }
     }
 
     /**
      * Повертає директорію, у якій знахходитсья файл; якщо файл є папкою,
      * то повертає директорію самої папки
+     *
      * @param selectedItem файл
      * @return файл-директорія
      */
@@ -252,8 +328,32 @@ public class MainViewController implements Initializable {
         }
     }
 
+    @FXML
+    void addSessionButtonAction(ActionEvent event) throws IOException {
+        FXMLLoader loader = new FXMLLoader(ClientApplication.class.getResource("/fxml/login-view.fxml"));
+        Parent root = loader.load();
+        LoginController controller = loader.getController();
+        controller.setAction((a, b, c) -> {
+            FTPClient client = FTPUtil.createNewSession(a, b, c);
+            addSession(a, client);
+        });
+        openWindow.accept(root);
+    }
+
+    @FXML
+    void removeSessionButtonAction(ActionEvent event) throws IOException {
+        sessionManager.remove(currentSessionName);
+        listManager.removeSelectedLayer();
+        treeViewPanel.setRoot(null);
+        currentSessionName = null;
+        ftpClient.disconnect();
+        ftpClient = null;
+    }
+
+
     /**
      * Вивести повідомелення про помилку на лейбл
+     *
      * @param text надпис
      */
     private void setErrorText(String text) {
@@ -270,6 +370,7 @@ public class MainViewController implements Initializable {
 
     /**
      * Обновляє статус кнопок в залежності від вибраного елементу у TreeView
+     *
      * @param selectedItem вибрана кнопка
      */
     private void updateButtonsBasedOnSelection(TreeItem<FTPFile> selectedItem) {

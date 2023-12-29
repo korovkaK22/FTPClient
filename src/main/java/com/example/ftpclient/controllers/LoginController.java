@@ -3,7 +3,9 @@ package com.example.ftpclient.controllers;
 import com.example.ftpclient.ClientApplication;
 import com.example.ftpclient.exceptions.LoginFailedException;
 import com.example.ftpclient.utils.LoadDefaultSettings;
+import com.example.ftpclient.utils.TriConsumer;
 import javafx.scene.control.Label;
+import javafx.stage.Stage;
 import lombok.extern.java.Log;
 import org.apache.commons.net.ftp.FTPClient;
 import javafx.event.ActionEvent;
@@ -24,13 +26,9 @@ import java.util.function.Consumer;
 public class LoginController implements Initializable {
     private static final Logger logger = LogManager.getRootLogger();
 
-    @Setter
-    private FTPClient ftpClient;
-    @Setter
-    private Runnable action;
 
-    @FXML
-    private Button loginButton;
+    @Setter
+    private TriConsumer<String, String, String> action;
 
     @FXML
     private TextField loginLabel;
@@ -54,11 +52,8 @@ public class LoginController implements Initializable {
     @FXML
     void loginAction(ActionEvent event) throws Exception {
         try {
-            ftpClient.connect(serverLabel.getText());
-            if (!ftpClient.login(loginLabel.getText(), passwordLabel.getText())){
-                throw new LoginFailedException("Username or password are incorrect");
-            }
-            action.run();
+            action.accept(loginLabel.getText(), passwordLabel.getText(), serverLabel.getText());
+            closeWindow();
         } catch (Exception e){
             String ex = "Can't login: "+ e.getMessage();
             errorLabel.setText(ex);
@@ -66,6 +61,10 @@ public class LoginController implements Initializable {
         }
     }
 
+    private void closeWindow() {
+        Stage stage = (Stage) loginLabel.getScene().getWindow();
+        stage.close();
+    }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {

@@ -18,10 +18,7 @@ public class FtpClientApplication {
 
     public static void main(String[] args) {
         ConfigurableApplicationContext context = SpringApplication.run(FtpClientApplication.class, args);
-        FTPClient ftpClient = new FTPClient();
-        ftpClient.setControlEncoding("UTF-8");
         ClientApplication.setSettings(context.getBean(LoadDefaultSettings.class));
-        ClientApplication.setFtpClient(ftpClient);
         Application.launch(ClientApplication.class, args);
     }
 
